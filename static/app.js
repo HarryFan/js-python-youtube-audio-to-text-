@@ -1,12 +1,19 @@
 document.getElementById("transcriptionForm").addEventListener("submit", async function (event) {
     event.preventDefault();
-    
 
     const youtubeUrl = document.getElementById("youtubeUrl").value;
     const apiKey = document.getElementById("apiKey").value;
     const progress = document.getElementById("progress");
     const progressBar = document.querySelector(".progress-bar");
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
 
+
+    socket.on('download_progress', function (data) {
+        const progressValue = data.progress.toFixed(1);
+        progressBar.style.width = progressValue + "%";
+        progressBar.setAttribute("aria-valuenow", progressValue);
+    });
+    
     if (!youtubeUrl || !apiKey) {
         progress.textContent = "請填寫完整資料";
         return;
@@ -19,17 +26,21 @@ document.getElementById("transcriptionForm").addEventListener("submit", async fu
 
     progress.textContent = "正在下載和轉換...";
 
-    // 在此添加處理進度的代碼
-    // ...
-    // 模擬進度條增長
-    let progressValue = 0;
-    const progressInterval = setInterval(() => {
-        progressValue += 10;
-        progressBar.style.width = progressValue + "%";
-        progressBar.setAttribute("aria-valuenow", progressValue);
+    try {
+        const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                url: youtubeUrl,
+                api_key: apiKey
+            })
+        });
 
-        if (progressValue >= 100) {
-            clearInterval(progressInterval);
+        const data = await response.json();
+
+        if (data.message === "轉換完成！") {
             progress.textContent = "轉換完成！";
             progressBar.classList.remove("progress-bar-animated");
 
@@ -39,6 +50,12 @@ document.getElementById("transcriptionForm").addEventListener("submit", async fu
             downloadLink.href = URL.createObjectURL(transcriptBlob);
             downloadLink.download = "逐字稿.txt";
             downloadLink.click();
+        } else {
+            progress.textContent = "發生錯誤";
         }
-    }, 1000);
+
+    } catch (error) {
+        console.error(error);
+        progress.textContent = "發生錯誤";
+    }
 });
