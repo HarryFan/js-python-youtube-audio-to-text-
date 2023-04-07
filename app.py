@@ -6,7 +6,7 @@ from pydub import AudioSegment
 import openai
 import youtube_dl
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 
 # 新增的部分：定義根路徑並返回 index.html
 @app.route('/')
@@ -53,4 +53,4 @@ def transcribe():
     return jsonify({"message": result})
 
 if __name__ == '__main__':
-    app.run(port=5001)
+    app.run(port=5003)
